@@ -92,11 +92,9 @@ input:focus{border-color:var(--blue)}
 <footer class="footer">Rotary Club de Iretama • <b>Crie Impacto Duradouro</b></footer>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
 <script>
 const SUPABASE_URL = 'https://zvyjdgipyhjrspomgxs.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_dmhsPPurFlOIehK-LlHIgQ_4evqxdmd';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 let attend=null,guests=[];
 const $=id=>document.getElementById(id);
@@ -157,39 +155,36 @@ async function finish(){
 }
 async function saveConfirmation(nome, presenca, convidados){
   try {
-    const payload = {
-      Nome: nome,
-      Presenca: presenca,
-      Convidados: convidados
-    };
+    const response = await fetch(SUPABASE_URL + '/rest/v1/confirmacoes', {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_PUBLISHABLE_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        Nome: nome,
+        Presenca: presenca,
+        Convidados: convidados
+      })
+    });
 
-    console.log('Enviando confirmação ao Supabase:', payload);
-
-    const { data, error } = await supabaseClient
-      .from('confirmacoes')
-      .insert(payload)
-      .select('id')
-      .single();
-
-    if(error){
-      console.error('ERRO SUPABASE:', error);
-      const detalhes = [
-        error.message ? 'Mensagem: ' + error.message : '',
-        error.details ? 'Detalhes: ' + error.details : '',
-        error.hint ? 'Dica: ' + error.hint : '',
-        error.code ? 'Código: ' + error.code : ''
-      ].filter(Boolean).join('\n\n');
-
-      alert('Não foi possível registrar sua confirmação.\n\n' +
-            (detalhes || 'O servidor não informou os detalhes do erro.'));
+    if(!response.ok){
+      const text = await response.text();
+      console.error('ERRO SUPABASE REST:', response.status, text);
+      alert('Não foi possível registrar sua confirmação.\n\nCódigo HTTP: ' +
+            response.status + '\n\n' + (text || 'O servidor não informou detalhes.'));
       return false;
     }
 
-    console.log('Confirmação registrada com sucesso:', data);
+    console.log('Confirmação registrada com sucesso.');
     return true;
   } catch (e) {
-    console.error('ERRO INESPERADO:', e);
-    alert('Erro inesperado ao registrar.\n\n' + (e?.message || e));
+    console.error('ERRO DE COMUNICAÇÃO:', e);
+    alert('Não foi possível registrar sua confirmação.\n\nErro de comunicação: ' +
+          (e?.message || e));
     return false;
   }
 }
