@@ -92,7 +92,12 @@ input:focus{border-color:var(--blue)}
 <footer class="footer">Rotary Club de Iretama • <b>Crie Impacto Duradouro</b></footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL = 'https://zvyjdgipyhjrspomgxs.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_dmhsPPurFlOIehK-LlHIgQ_4evqxdmd';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
 let attend=null,guests=[];
 const $=id=>document.getElementById(id);
 
@@ -101,21 +106,26 @@ function pick(v){
  $('yes').classList.toggle('sel',v);
  $('no').classList.toggle('sel',!v);
 }
-function go(){
+async function go(){
  const n=$('name').value.trim();
  if(!n){alert('Digite seu nome.');return}
  if(attend===null){alert('Selecione SIM ou NÃO.');return}
- $('s1').classList.add('hidden');
- if(attend){
-   $('s2').classList.remove('hidden');
-   $('guest').focus();
- }else{
+
+ if(!attend){
+   const ok = await saveConfirmation(n, false, []);
+   if(!ok) return;
+   $('s1').classList.add('hidden');
    $('s3').classList.remove('hidden');
    $('icon').textContent='❌';
    $('title').textContent='Presença não confirmada';
    $('msg').textContent=n+', sua resposta foi registrada.';
    $('summary').innerHTML='<b>Obrigado pela resposta!</b>';
+   return;
  }
+
+ $('s1').classList.add('hidden');
+ $('s2').classList.remove('hidden');
+ $('guest').focus();
 }
 function add(){
  const v=$('guest').value.trim();
@@ -132,8 +142,11 @@ function render(){
  ).join('');
 }
 function del(i){guests.splice(i,1);render()}
-function finish(){
+async function finish(){
  const n=$('name').value.trim();
+ const ok = await saveConfirmation(n, true, guests);
+ if(!ok) return;
+
  $('s2').classList.add('hidden');
  $('s3').classList.remove('hidden');
  $('msg').textContent=n+', sua confirmação foi registrada.';
@@ -142,6 +155,23 @@ function finish(){
    : '<b>Sem convidados.</b>')+
    '<br><br><b>Total de pessoas: '+(guests.length+1)+'</b>';
 }
+async function saveConfirmation(nome, presenca, convidados){
+  const { error } = await supabaseClient
+    .from('confirmacoes')
+    .insert({
+      Nome: nome,
+      Presença: presenca,
+      Convidados: convidados
+    });
+
+  if(error){
+    console.error(error);
+    alert('Não foi possível registrar sua confirmação. Verifique sua conexão e tente novamente.');
+    return false;
+  }
+  return true;
+}
+
 function esc(s){
  return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 }
