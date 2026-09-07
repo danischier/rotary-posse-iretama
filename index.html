@@ -155,33 +155,36 @@ async function finish(){
 }
 async function saveConfirmation(nome, presenca, convidados){
   try {
-    const response = await fetch(SUPABASE_URL + '/rest/v1/confirmacoes', {
-      method: 'POST',
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_PUBLISHABLE_KEY,
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({
-        Nome: nome,
-        Presenca: presenca,
-        Convidados: convidados
-      })
-    });
+    const response = await fetch(
+      'https://zvyjdgipyhjrspomgxs.supabase.co/functions/v1/confirmacao-posse',
+      {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          Nome: nome,
+          Presenca: presenca,
+          Convidados: convidados
+        })
+      }
+    );
+
+    const text = await response.text();
 
     if(!response.ok){
-      const text = await response.text();
-      console.error('ERRO SUPABASE REST:', response.status, text);
+      console.error('ERRO NA FUNÇÃO:', response.status, text);
       alert('Não foi possível registrar sua confirmação.\n\nCódigo HTTP: ' +
             response.status + '\n\n' + (text || 'O servidor não informou detalhes.'));
       return false;
     }
 
-    console.log('Confirmação registrada com sucesso.');
+    console.log('Confirmação registrada com sucesso:', text);
     return true;
+
   } catch (e) {
-    console.error('ERRO DE COMUNICAÇÃO:', e);
+    console.error('ERRO DE COMUNICAÇÃO COM A FUNÇÃO:', e);
     alert('Não foi possível registrar sua confirmação.\n\nErro de comunicação: ' +
           (e?.message || e));
     return false;
